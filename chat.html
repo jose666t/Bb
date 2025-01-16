@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat en Tiempo Real</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f5f5f5;
+            color: #333;
+            text-align: center;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+        h1 {
+            background-color: #4CAF50;
+            color: white;
+            padding: 20px;
+            margin: 0;
+        }
+        #messages {
+            margin: 20px auto;
+            padding: 10px;
+            width: 80%;
+            height: 300px;
+            overflow-y: auto;
+            border: 1px solid #ccc;
+            background-color: #fff;
+            flex-grow: 1;
+        }
+        .input-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 10px;
+        }
+        #messageInput {
+            width: 70%;
+            padding: 10px;
+            margin-right: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        #sendButton {
+            padding: 10px 20px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        #sendButton:hover {
+            background-color: #45a049;
+        }
+        .message {
+            background-color: #f1f1f1;
+            margin: 10px 0;
+            padding: 5px;
+            border-radius: 5px;
+            position: relative;
+        }
+        .editDeleteButtons {
+            display: none;
+            position: absolute;
+            top: 5px;
+            right: 5px;
+        }
+        .editDeleteButtons button {
+            background-color: #ff6b6b;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            padding: 5px 10px;
+            cursor: pointer;
+        }
+        .editDeleteButtons button:hover {
+            background-color: #ff4757;
+        }
+        .message input {
+            width: 80%;
+        }
+    </style>
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-app.js";
+        import { getDatabase, ref, push, onValue, update, remove } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-database.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyBKjNNEm-YqZORFrereFo3OnlHhJ9xQq-0",
+            authDomain: "app1-11e27.firebaseapp.com",
+            databaseURL: "https://app1-11e27-default-rtdb.firebaseio.com/",
+            projectId: "app1-11e27",
+            storageBucket: "app1-11e27.appspot.com",
+            messagingSenderId: "388734549117",
+            appId: "1:388734549117:web:d2a65240cc316dd0280514",
+            measurementId: "G-340G89GT5C"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const database = getDatabase(app);
+        const messagesRef = ref(database, "messages");
+
+        // Función para renderizar mensajes
+        function renderMessages(snapshot) {
+            const messagesDiv = document.getElementById("messages");
+            messagesDiv.innerHTML = "";  // Limpiar mensajes previos
+
+            snapshot.forEach((childSnapshot) => {
+                const messageData = childSnapshot.val();
+                const messageId = childSnapshot.key;
+                const messageElement = document.createElement("div");
+                messageElement.classList.add("message");
+
+                const messageText = document.createElement("span");
+                messageText.textContent = messageData.text;
+
+                // Añadir botones de editar y eliminar
+                const buttons = document.createElement("div");
+                buttons.classList.add("editDeleteButtons");
+
+                const editButton = document.createElement("button");
+                editButton.textContent = "Editar";
+                editButton.addEventListener("click", () => editMessage(messageId, messageData.text));
+
+                const deleteButton = document.createElement("button");
+                deleteButton.textContent = "Eliminar";
+                deleteButton.addEventListener("click", () => deleteMessage(messageId));
+
+                buttons.appendChild(editButton);
+                buttons.appendChild(deleteButton);
+
+                messageElement.appendChild(messageText);
+                messageElement.appendChild(buttons);
+                messagesDiv.appendChild(messageElement);
+
+                // Evento de mantener presionado el mensaje para mostrar botones
+                messageElement.addEventListener("contextmenu", (e) => {
+                    e.preventDefault();  // Prevenir el menú de contexto
+                    buttons.style.display = "block";  // Mostrar botones
+                });
+
+                messageElement.addEventListener("click", () => {
+                    buttons.style.display = "none";  // Ocultar botones si se hace clic en el mensaje
+                });
+            });
+        }
+
+        // Función para eliminar mensaje
+        function deleteMessage(messageId) {
+            const messageRef = ref(database, `messages/${messageId}`);
+            remove(messageRef);
+        }
+
+        // Función para editar mensaje
+        function editMessage(messageId, currentText) {
+            const newText = prompt("Edita tu mensaje:", currentText);
+            if (newText !== null && newText.trim() !== "") {
+                const messageRef = ref(database, `messages/${messageId}`);
+                update(messageRef, { text: newText });
+            }
+        }
+
+        // Escuchar cambios en tiempo real
+        onValue(messagesRef, (snapshot) => renderMessages(snapshot));
+
+        // Función para enviar mensaje
+        document.addEventListener("DOMContentLoaded", () => {
+            const sendButton = document.getElementById("sendButton");
+            const messageInput = document.getElementById("messageInput");
+
+            sendButton.addEventListener("click", () => {
+                const message = messageInput.value.trim();
+                if (message) {
+                    push(messagesRef, { text: message, timestamp: Date.now() });
+                    messageInput.value = ""; // Limpiar el campo
+                }
+            });
+        });
+    </script>
+</head>
+<body>
+    <h1>Chat en Tiempo Real</h1>
+    <div id="messages"></div>
+    <div class="input-container">
+        <input type="text" id="messageInput" placeholder="Escribe tu mensaje" />
+        <button id="sendButton">Enviar</button>
+    </div>
+</body>
+</html>
